@@ -1,16 +1,17 @@
 <script lang="ts">
   import { tick } from "svelte";
+  import ToDoItem from "./ToDoItem.svelte";
 
-  type ToDoItem = {
+  let activeElement: HTMLElement | undefined = $state();
+  let searchTerm = $state("");
+
+  type ToDoItemData = {
     id: number;
     text: string;
     input?: HTMLInputElement;
   };
 
-  let activeElement: HTMLElement | undefined = $state();
-  let searchTerm = $state("");
-
-  let toDoList: ToDoItem[] = $state([
+  let toDoList: ToDoItemData[] = $state([
     {
       id: 1,
       text: "Do the dishes",
@@ -34,7 +35,7 @@
     );
   });
 
-  function getToDoById(toDoId: number): ToDoItem | undefined {
+  function getToDoById(toDoId: number): ToDoItemData | undefined {
     return toDoList.find((item) => item.id === toDoId);
   }
 
@@ -71,7 +72,12 @@
   }
 
   function removeToDo(toDoId: number) {
-    toDoList = toDoList.filter((item) => item.id !== toDoId);
+    console.log("Removing to do with ID %d", toDoId);
+
+    const index = toDoList.findIndex((item) => item.id === toDoId);
+    if (index > -1) {
+      toDoList.splice(index, 1);
+    }
   }
 </script>
 
@@ -84,57 +90,52 @@
   >Filter:
   <input
     type="search"
+    autocomplete="off"
     placeholder="Search for to do..."
     bind:value={searchTerm}
   />
 </label>
 <ul>
   {#each filteredToDoList as toDo (toDo.id)}
-    <li>
-      <input
-        type="text"
-        bind:value={toDo.text}
-        bind:this={toDo.input}
-        placeholder="What needs to be done?"
-        onkeydown={(event) => {
-          if (event.key === "Enter") {
-            // Only add a new to do if we're not currently filtering to dos.
-            if (searchTerm === "") {
-              const newToDoId = addToDo(toDo.id);
-              tick().then(() => focusToDo(newToDoId));
+    <ToDoItem
+      bind:text={toDo.text}
+      bind:input={toDo.input}
+      onkeydown={(event) => {
+        if (event.key === "Enter") {
+          // Only add a new to do if we're not currently filtering to dos.
+          if (searchTerm === "") {
+            const newToDoId = addToDo(toDo.id);
+            tick().then(() => focusToDo(newToDoId));
+          }
+
+          event.preventDefault();
+        } else if (event.key === "Backspace") {
+          if (toDo.text === "" && searchTerm === "") {
+            // Try focusing the to do item just above this one,
+            // if it exists.
+            const toDoItemIndex = filteredToDoList.findIndex(
+              (item) => item.id === toDo.id,
+            );
+            let previousToDoId = null;
+            if (toDoItemIndex > 0) {
+              previousToDoId = filteredToDoList[toDoItemIndex - 1].id;
+            }
+
+            removeToDo(toDo.id);
+
+            if (previousToDoId !== null) {
+              const toDoItem = getToDoById(previousToDoId)!;
+              const previousInput = toDoItem.input;
+              const end = previousInput?.value?.length || 0;
+              previousInput?.setSelectionRange(end, end);
+              previousInput?.focus();
             }
 
             event.preventDefault();
-          } else if (event.key === "Backspace") {
-            if (toDo.text === "" && searchTerm === "") {
-              // Try focusing the to do item just above this one,
-              // if it exists.
-              const toDoItemIndex = filteredToDoList.findIndex(
-                (item) => item.id === toDo.id,
-              );
-              let previousToDoId = null;
-              if (toDoItemIndex > 0) {
-                previousToDoId = filteredToDoList[toDoItemIndex - 1].id;
-              }
-
-              removeToDo(toDo.id);
-
-              if (previousToDoId) {
-                tick().then(() => {
-                  const toDoItem = getToDoById(previousToDoId)!;
-                  const previousInput = toDoItem.input;
-                  const end = previousInput?.value?.length || 0;
-                  previousInput?.setSelectionRange(end, end);
-                  previousInput?.focus();
-                });
-              }
-
-              event.preventDefault();
-            }
           }
-        }}
-      />
-    </li>
+        }
+      }}
+    />
   {/each}
   {#if filteredToDoList.length === 0}
     {#if searchTerm === ""}

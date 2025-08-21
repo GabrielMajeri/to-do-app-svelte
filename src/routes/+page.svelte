@@ -1,5 +1,5 @@
 <script>
-  import ToDoApp from "./ToDoApp.svelte";
+  import ToDoApp from "./components/ToDoApp.svelte";
 </script>
 
 <ToDoApp />
