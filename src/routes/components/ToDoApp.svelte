@@ -1,16 +1,29 @@
+<script module>
+  const TO_DO_LIST_KEY = "toDoList";
+
+  type ToDoItemData = {
+    id: number;
+    text: string;
+    completed: boolean;
+  };
+
+  const savedToDoListData = localStorage.getItem(TO_DO_LIST_KEY);
+  const savedToDoList: ToDoItemData[] = savedToDoListData
+    ? JSON.parse(savedToDoListData)
+    : null;
+</script>
+
 <script lang="ts">
   import { tick } from "svelte";
   import ToDoItem from "./ToDoItem.svelte";
 
   let activeElement: HTMLElement | undefined = $state();
   let searchTerm = $state("");
+  let saving = $state(false);
 
-  type ToDoItemData = {
-    id: number;
-    text: string;
-    completed: boolean;
+  interface ToDoItemElementData extends ToDoItemData {
     input?: HTMLInputElement;
-  };
+  }
 
   const initialToDoList = [
     {
@@ -30,7 +43,20 @@
     },
   ];
 
-  let toDoList: ToDoItemData[] = $state(initialToDoList.slice());
+  let toDoList: ToDoItemElementData[] = $state(
+    savedToDoList || initialToDoList,
+  );
+
+  $effect(() => {
+    saving = true;
+    const serializedToDoList = toDoList.map((item) => ({
+      id: item.id,
+      text: item.text,
+      completed: item.completed,
+    }));
+    localStorage.setItem(TO_DO_LIST_KEY, JSON.stringify(serializedToDoList));
+    saving = false;
+  });
 
   const filteredToDoList = $derived.by(() => {
     const lowerCaseSearchTerm = searchTerm.toLocaleLowerCase();
@@ -41,7 +67,7 @@
     );
   });
 
-  function getToDoById(toDoId: number): ToDoItemData | undefined {
+  function getToDoById(toDoId: number): ToDoItemElementData | undefined {
     return toDoList.find((item) => item.id === toDoId);
   }
 
@@ -166,6 +192,9 @@
   <p>There are {toDoList.length} items in your to do list.</p>
 {:else}
   <p>Found {filteredToDoList.length} matching items.</p>
+{/if}
+{#if saving}
+  <p>Saving to dos to local storage...</p>
 {/if}
 <p>
   <button onclick={() => addToDo()}>Add to do</button>
