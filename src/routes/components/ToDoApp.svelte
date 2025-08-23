@@ -8,23 +8,29 @@
   type ToDoItemData = {
     id: number;
     text: string;
+    completed: boolean;
     input?: HTMLInputElement;
   };
 
-  let toDoList: ToDoItemData[] = $state([
+  const initialToDoList = [
     {
       id: 1,
       text: "Do the dishes",
+      completed: false,
     },
     {
       id: 2,
       text: "Read a book",
+      completed: false,
     },
     {
       id: 3,
       text: "Learn Svelte",
+      completed: false,
     },
-  ]);
+  ];
+
+  let toDoList: ToDoItemData[] = $state(initialToDoList.slice());
 
   const filteredToDoList = $derived.by(() => {
     const lowerCaseSearchTerm = searchTerm.toLocaleLowerCase();
@@ -47,9 +53,10 @@
         .map((item) => item.id)
         .reduce((prev, curr) => Math.max(prev, curr), 0) + 1;
 
-    const newToDo = {
+    const newToDo: ToDoItemData = {
       id,
       text: "",
+      completed: false,
     };
 
     if (afterId) {
@@ -79,6 +86,10 @@
       toDoList.splice(index, 1);
     }
   }
+
+  function resetToDoList() {
+    toDoList = initialToDoList.slice();
+  }
 </script>
 
 <svelte:document bind:activeElement />
@@ -86,19 +97,26 @@
 <h1>To do app</h1>
 
 <p>Your to do list:</p>
-<label
-  >Filter:
-  <input
-    type="search"
-    autocomplete="off"
-    placeholder="Search for to do..."
-    bind:value={searchTerm}
-  />
-</label>
+
+<div class="search-box-container">
+  <span class="search-box">
+    <label
+      >Filter:
+      <input
+        type="search"
+        autocomplete="off"
+        placeholder="Search for to do..."
+        bind:value={searchTerm}
+      />
+    </label>
+  </span>
+</div>
+
 <ul>
   {#each filteredToDoList as toDo (toDo.id)}
     <ToDoItem
       bind:text={toDo.text}
+      bind:completed={toDo.completed}
       bind:input={toDo.input}
       onkeydown={(event) => {
         if (event.key === "Enter") {
@@ -137,16 +155,39 @@
       }}
     />
   {/each}
-  {#if filteredToDoList.length === 0}
-    {#if searchTerm === ""}
-      <p>No items in your to do list.</p>
-    {:else}
-      <p>No items were found matching the search criteria.</p>
-    {/if}
-  {:else if searchTerm === ""}
-    <p>There are {toDoList.length} items in your to do list.</p>
-  {:else}
-    <p>Found {filteredToDoList.length} matching items.</p>
-  {/if}
 </ul>
-<button onclick={() => addToDo()}>Add to do</button>
+{#if filteredToDoList.length === 0}
+  {#if searchTerm === ""}
+    <p>No items in your to do list.</p>
+  {:else}
+    <p>No items were found matching the search criteria.</p>
+  {/if}
+{:else if searchTerm === ""}
+  <p>There are {toDoList.length} items in your to do list.</p>
+{:else}
+  <p>Found {filteredToDoList.length} matching items.</p>
+{/if}
+<p>
+  <button onclick={() => addToDo()}>Add to do</button>
+  <button onclick={() => resetToDoList()}>Reset</button>
+</p>
+
+<style>
+  h1,
+  p {
+    text-align: center;
+  }
+
+  h1 {
+    margin-top: 5rem;
+  }
+
+  ul {
+    list-style-type: none;
+    text-align: center;
+  }
+
+  .search-box-container {
+    text-align: center;
+  }
+</style>
