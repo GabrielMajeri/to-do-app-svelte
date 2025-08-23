@@ -30,6 +30,10 @@
 </li>
 
 <style>
+  li {
+    margin: 8px 0 8px 0;
+  }
+
   input {
     border: none;
   }

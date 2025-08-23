@@ -71,7 +71,13 @@
     return toDoList.find((item) => item.id === toDoId);
   }
 
-  function addToDo(afterId?: number) {
+  type AddToDoOptions = {
+    text?: string;
+    afterId?: number;
+    focus?: boolean;
+  };
+
+  function addToDo(options?: AddToDoOptions) {
     console.log("Adding new to do");
 
     const id =
@@ -81,12 +87,14 @@
 
     const newToDo: ToDoItemData = {
       id,
-      text: "",
+      text: options?.text ?? "",
       completed: false,
     };
 
-    if (afterId) {
-      let insertIndex = toDoList.findIndex((item) => item.id === afterId);
+    if (options?.afterId !== undefined) {
+      let insertIndex = toDoList.findIndex(
+        (item) => item.id === options.afterId,
+      );
       if (insertIndex === -1) {
         insertIndex = toDoList.length - 1;
       } else {
@@ -95,6 +103,13 @@
       toDoList.splice(insertIndex, 0, newToDo);
     } else {
       toDoList.push(newToDo);
+    }
+
+    if (options?.focus) {
+      tick().then(() => {
+        const toDoItem = toDoList.find((item) => item.id === id);
+        toDoItem?.input?.focus();
+      });
     }
 
     return id;
@@ -148,7 +163,7 @@
         if (event.key === "Enter") {
           // Only add a new to do if we're not currently filtering to dos.
           if (searchTerm === "") {
-            const newToDoId = addToDo(toDo.id);
+            const newToDoId = addToDo({ afterId: toDo.id });
             tick().then(() => focusToDo(newToDoId));
           }
 
@@ -181,6 +196,9 @@
       }}
     />
   {/each}
+  <li>
+    <button onclick={() => addToDo({ focus: true })}>Add to do</button>
+  </li>
 </ul>
 {#if filteredToDoList.length === 0}
   {#if searchTerm === ""}
@@ -214,6 +232,11 @@
   ul {
     list-style-type: none;
     text-align: center;
+  }
+
+  ul li {
+    margin-top: 16px;
+    margin-bottom: 24px;
   }
 
   .search-box-container {
